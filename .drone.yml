@@ -1,0 +1,33 @@
+kind: pipeline
+name: default
+
+steps:
+  - name: frontend-test-cases
+    image: cypress/included:8.6.0
+    when:
+      status:
+        - failure
+        - success
+    commands:
+      - git clone https://${GIT_ACCESS_TOKEN}@github.com/${GIT_REPO}.git
+      - cd ${PROJECT_FOLDER_NAME} && mkdir cypress && cd ..
+      - cp ./parser.js ${PROJECT_FOLDER_NAME}/parser.js
+      - cp -r ./cypress/. ${PROJECT_FOLDER_NAME}/cypress/
+      - cp ./webpack.config.js ${PROJECT_FOLDER_NAME}/webpack.config.js
+      - cp ./cypress.json ${PROJECT_FOLDER_NAME}/cypress.json
+      - cd ${PROJECT_FOLDER_NAME}
+      - npm i -g npm-run-all
+      - npm i  mochawesome
+      - npm install && run-p -s start test
+
+  - name: result
+    image: node
+    when:
+      status:
+        - failure
+        - success
+    depends_on:
+      - frontend-test-cases
+    commands:
+      - cd ${PROJECT_FOLDER_NAME}
+      - node parser.js
